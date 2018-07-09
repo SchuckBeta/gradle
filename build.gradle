@@ -6,12 +6,24 @@
  * user guide available at https://docs.gradle.org/4.8.1/userguide/java_library_plugin.html
  */
 
+/**
+ *旧版gradle的插件应用方式.
+ */
+//plugins {
+//    // Apply the java-library plugin to add support for Java Library
+//    id 'java-library'
+//}
 
-
-plugins {
-    // Apply the java-library plugin to add support for Java Library
-    id 'java-library'
-}
+/**
+ *新版gradle的插件应用方式.
+ */
+apply plugin: 'java-library'
+//压缩插件
+apply plugin: 'distribution'	
+//Maven插件
+apply plugin: 'maven'
+//Maven发布插件
+apply plugin: 'maven-publish'
 
 dependencies {
     // This dependency is exported to consumers, that is to say found on their compile classpath.
@@ -28,14 +40,42 @@ dependencies {
 repositories {
     // Use jcenter for resolving your dependencies.
     // You can declare any Maven/Ivy/file repository here.
+    /**
+     * Java中央仓库.
+     */
     jcenter()
+
+    /**
+     * Maven中央仓库.
+     */
+    mavenCentral()
+
+    //ivy {
+    //  // URL can refer to a local directory
+    //    url "../local-repo"
+    //}
 }
 
 /**
  *Jar包版本
  */
+group = 'org.gradle.sample'
 version = '0.1.0'
 description = "A trivial Gradle build~~~"
+
+/**
+ *Distributions包版本,依赖于distribution插件
+ */
+distributions {
+    custom {}
+    main {
+        baseName = 'someName'
+        contents {
+            from { 'src/readme' }
+        }
+    }
+}
+
 
 /**
  *生成Jar包的MANIFEST文件配置
@@ -44,5 +84,42 @@ jar {
     manifest {
         attributes('Implementation-Title': project.name,
                    'Implementation-Version': project.version)
+    }
+}
+
+
+/**
+ *发布项目配置.
+ */
+uploadArchives {
+    repositories {
+	//发布一个Maven仓库.依赖于maven插件
+	mavenDeployer {
+            //repository(url: "http://123.56.169.161/nexus/content/groups/public/")
+            addFilter('api') {artifact, file ->
+                artifact.name == 'api'
+            }
+            addFilter('service') {artifact, file ->
+                artifact.name == 'service'
+            }
+            pom('api').version = 'mySpecialMavenVersion'
+        }
+    }
+}
+
+
+//发布一个Maven仓库.依赖于maven插件
+publishing {
+    publications {
+        mavenJava(MavenPublication) {
+            from components.java
+        }
+    }
+}
+publishing {
+    repositories {
+        maven {
+            url "$buildDir/repo"
+        }
     }
 }
